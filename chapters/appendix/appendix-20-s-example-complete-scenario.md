@@ -1,0 +1,43 @@
+# Appendix: Code Snippets and Examples
+
+## S. Example complete scenario
+
+### S.1. `scenarios/firewall_permit_tcp.yaml`
+
+```yaml
+name: firewall-permit-tcp
+description: "Permit all TCP to 10.0.0.0/24"
+initial_message: "how to permit all tcp packets to 10.0.0.0/24"
+
+tool_vars:
+  command_execute:
+    responses:
+      "display version": |
+        Huawei Versatile Routing Platform Software
+        VRP (R) software, Version 8.180 (USG6686F V600R025C10)
+    fail_on: ["reboot", "reset"]
+
+transitions:
+  - message: "Yes, write it to a file"
+    include: ["\\?$", "confirm"]
+    exclude: ["done"]
+  - message: "Verify the rule"
+    include: ["written to", "policy.txt"]
+    exclude: []
+
+checks:
+  tags: ["firewall", "smoke"]
+  final_include: ["tcp", "10\\.0\\.0\\.0/24"]
+  final_exclude: ["I cannot", "unknown command"]
+  required_tools: ["read_doc", "write"]
+  forbidden_tools: ["execute_shell"]
+  max_agent_messages: 10
+  max_context_tokens: 50000
+  max_duration_secs: 120
+
+timeouts:
+  turn_secs: 60
+```
+
+---
+
