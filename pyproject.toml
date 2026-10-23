@@ -1,17 +1,50 @@
 [project]
 name = "agentprobe"
 version = "0.1.0"
-description = "Add your description here"
+description = "Asynchronous LLM agent for E2E testing (Huawei Security Expert repro)"
 readme = "README.md"
 authors = [
     { name = "Shabanov Anton", email = "iamshabanov@yandex.ru" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "httpx[http2]>=0.27",
+    "mcp>=1.0,<2",
+    "openai>=1.40,<2",
+    "pydantic>=2.7",
+    "pyyaml>=6.0",
+    "rich>=13.7",
+    "typer>=0.12",
+]
 
 [project.scripts]
-agentprobe = "agentprobe:main"
+agentprobe = "agentprobe.cli:app"
 
 [build-system]
 requires = ["uv_build>=0.13.1,<0.14.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.10",
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.5",
+    "types-pyyaml>=6.0.12.20260906",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+# B008: Typer requires typer.Option(...) in argument defaults.
+# BLE001: the spec mandates broad Exception handling so MCP tools can return
+#   error strings to the LLM and the CLI/runner can surface runtime failures.
+ignore = ["B008", "BLE001"]
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

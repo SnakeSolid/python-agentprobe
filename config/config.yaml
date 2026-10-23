@@ -1,0 +1,62 @@
+app:
+  workspace: ./workspace
+  docs_dir: ./docs
+  skills_dir: ./skills
+  prompt_file: ./prompts/system.md
+  subagent_prompt_file: null
+  memory_file: ./workspace/MEMORY.md
+  user_tools_dir: null
+  log_dir: ./logs
+  tool_transport: in_memory
+  scenario_defaults:
+    turn_timeout_secs: 120
+    max_agent_messages: 30
+    max_context_tokens: 200000
+    max_duration_secs: 300
+
+models:
+  main:
+    endpoint: https://api.example.com/v1
+    api_key: placeholder-key
+    model: qwen3.6-27b
+    temperature: 0.6
+    request_timeout_secs: 120
+    max_retries: 3
+    proxy: null
+  subagent:
+    endpoint: https://api.example.com/v1
+    api_key: placeholder-key
+    model: qwen3.6-27b
+    temperature: 0.4
+    request_timeout_secs: 120
+    max_retries: 3
+    proxy: null
+
+limits:
+  main:
+    max_turns: 35
+    max_tool_calls: 100
+    max_duration_secs: 600
+    max_context_tokens: 1000000
+  subagent:
+    max_turns: 20
+    max_tool_calls: 50
+    max_duration_secs: 300
+    max_context_tokens: 200000
+
+tools:
+  enabled:
+    - read_doc
+    - read
+    - write
+    - edit
+    - execute_shell
+    - command_execute
+    - read_skill
+    - syntax_check
+    - spawn_agent
+
+logging:
+  console_level: info
+  console_truncate_chars: 400
+  color: auto

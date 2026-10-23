@@ -1,8 +1,12 @@
 syntax: glob
-__pycache__/
+*.egg-info
 *.py[oc]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv
+__pycache__/
 build/
 dist/
+logs/
 wheels/
-*.egg-info
-.venv
