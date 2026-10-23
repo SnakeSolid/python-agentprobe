@@ -18,7 +18,7 @@ def _run(args):
 
 
 def test_firewall_replay(tmp_path):
-    fixture_dir = ROOT / "tests/fixtures/llm_responses/test_run"
+    fixture_dir = ROOT / "tests/fixtures"
     summary = tmp_path / "summary.yaml"
     result = _run(
         [
