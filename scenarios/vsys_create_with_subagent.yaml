@@ -1,0 +1,28 @@
+name: vsys-create-with-subagent
+description: "Plan a vsys config using the huawei_vsys skill and a subagent cross-check"
+initial_message: >
+  Using the huawei_vsys skill, plan the configuration to create a virtual system
+  named 'dmz' with interface GigabitEthernet1/0/1 assigned to it. First read the
+  skill to learn the required steps, then delegate the verification of the exact
+  commands to a subagent, and finally present the complete configuration.
+
+tool_vars:
+  command_execute:
+    responses:
+      "display vsys": |
+        vsys default  id=1
+        vsys dmz      id=2
+    fail_on: ["reboot", "reset"]
+
+checks:
+  tags: ["subagent", "skill", "smoke"]
+  final_include: ["vsys", "system-view", "assign interface"]
+  final_exclude: ["I cannot", "unknown command"]
+  required_tools: ["read_skill", "spawn_agent"]
+  forbidden_tools: []
+  max_agent_messages: 14
+  max_context_tokens: 80000
+  max_duration_secs: 180
+
+timeouts:
+  turn_secs: 120
