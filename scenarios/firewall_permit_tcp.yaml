@@ -22,8 +22,8 @@ checks:
   tags: ["firewall", "smoke"]
   final_include: ["tcp", "10\\.0\\.0\\.0/24"]
   final_exclude: ["I cannot", "unknown command"]
-  required_tools: ["read_doc", "write"]
-  forbidden_tools: ["write"]
+  required_tools: ["read_doc"]
+  forbidden_tools: []
   max_agent_messages: 10
   max_context_tokens: 50000
   max_duration_secs: 120

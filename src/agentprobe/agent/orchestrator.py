@@ -138,6 +138,7 @@ class Orchestrator:
                         call.arguments,
                         res.duration_ms,
                         error_label(res),
+                        msg=ctx.agent_messages,
                     )
                     await self.observer.on_tool_result(res, ctx)
                     self.logger.log(

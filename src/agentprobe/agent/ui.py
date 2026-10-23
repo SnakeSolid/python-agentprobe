@@ -7,11 +7,18 @@ from agentprobe.logging.console import Console
 
 
 def error_label(res: Any) -> str | None:
-    """Short error label for a failed tool result, or ``None`` if it succeeded."""
+    """Short error label for a failed tool result, or ``None`` if it succeeded.
+
+    Tool error content is typically already prefixed with ``ERROR:``; strip it
+    so the facade adds the prefix exactly once.
+    """
     if not getattr(res, "is_error", False):
         return None
     content = getattr(res, "content", "") or ""
-    return content.splitlines()[0][:200] if content else "error"
+    first = content.splitlines()[0][:200] if content else "error"
+    if first.upper().startswith("ERROR:"):
+        first = first[len("ERROR:") :].lstrip()
+    return first
 
 
 class Ui(Protocol):
@@ -36,6 +43,7 @@ class Ui(Protocol):
         args: dict[str, Any],
         duration_ms: float | None = None,
         error: str | None = None,
+        msg: int | None = None,
     ) -> None: ...
 
     def turn_start(self, ctx: SessionCtx, *, tools_count: int, messages_count: int) -> None: ...
@@ -58,6 +66,7 @@ class NoOpUi:
         args: dict[str, Any],
         duration_ms: float | None = None,
         error: str | None = None,
+        msg: int | None = None,
     ) -> None: ...
 
     def turn_start(self, ctx: SessionCtx, *, tools_count: int, messages_count: int) -> None: ...
@@ -71,7 +80,8 @@ class ConsoleUi:
     - ``mode="repl"``: assistant text is streamed per chunk; user input is not
       echoed (the ``>>> `` prompt already echoes it); tool lines have no prefix.
     - ``mode="headless"``: assistant segments are buffered and only surfaced at
-      ``verbose``; tool lines are prefixed with ``[scenario <name>]``.
+      ``verbose``; tool lines are prefixed with ``[scenario <name>]`` and carry
+      the agent-message number that issued them.
     """
 
     def __init__(self, console: Console, *, mode: str, scenario: str | None = None):
@@ -82,28 +92,35 @@ class ConsoleUi:
         self.scenario = scenario
         self._buf: list[str] = []
         self._streaming = False
+        self._started = False
 
     def segment_start(self) -> None:
         self._buf = []
-        if self.mode == "repl":
-            self._streaming = True
-            self.console.stream_begin()
+        self._started = False
+        # In repl mode a segment's `[assistant]` prefix is deferred until the
+        # first content chunk so tool-call-only (empty) segments print nothing.
+        self._streaming = self.mode == "repl"
 
     def chunk(self, text: str) -> None:
         if self.mode == "repl":
             if self._streaming:
+                if not self._started:
+                    self._started = True
+                    self.console.stream_begin()
                 self.console.stream_write(text)
         else:
             self._buf.append(text)
 
     def segment_end(self) -> None:
         if self.mode == "repl":
-            if self._streaming:
+            if self._started:
                 self.console.stream_end()
-                self._streaming = False
+            self._streaming = False
+            self._started = False
         else:
-            if self.console.level == "verbose" and self._buf:
-                self.console.assistant("".join(self._buf))
+            text = "".join(self._buf).rstrip()
+            if self.console.level == "verbose" and text:
+                self.console.assistant(text)
             self._buf = []
 
     def tool(
@@ -112,12 +129,13 @@ class ConsoleUi:
         args: dict[str, Any],
         duration_ms: float | None = None,
         error: str | None = None,
+        msg: int | None = None,
     ) -> None:
         if self.console.level == "quiet":
             return
         if self.scenario is not None:
             line = self.console.tool_line(name, args, duration_ms, error)
-            self.console.scenario(self.scenario, f"  {line}")
+            self.console.scenario(self.scenario, f"  {line}" + (f"  (msg {msg})" if msg else ""))
         else:
             self.console.tool(name, args, duration_ms, error)
 

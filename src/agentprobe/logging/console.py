@@ -46,10 +46,10 @@ class Console:
         self._console.print(f"[green]{escape('[assistant]')}[/green] {escape(text)}")
 
     def stream_begin(self, prefix: str = "[assistant]") -> None:
-        self._console.print(f"[green]{escape(prefix)}[/green] ", end="")
+        self._console.print(f"[green]{escape(prefix)}[/green] ", end="", soft_wrap=True)
 
     def stream_write(self, text: str) -> None:
-        self._console.print(text, end="", markup=False)
+        self._console.print(text, end="", markup=False, soft_wrap=True)
         self._console.file.flush()
 
     def stream_end(self) -> None:
@@ -76,7 +76,7 @@ class Console:
         if self.level == "quiet":
             return
         line = self.tool_line(name, args, duration_ms, error)
-        self._console.print(f"[yellow]{escape(line)}[/yellow]")
+        self._console.print(f"[yellow]{escape(line)}[/yellow]", soft_wrap=True)
 
     def error(self, text: str) -> None:
         self._console.print(f"[red]{escape('[error]')}[/red] {escape(text)}")
@@ -95,25 +95,27 @@ class Console:
     def tokens(self, line: str) -> None:
         if self.level == "quiet":
             return
-        self._console.print(f"[dim]tokens: {escape(line)}[/dim]")
+        self._console.print(f"[dim]tokens: {escape(line)}[/dim]", soft_wrap=True)
 
     def run(self, run_id: str, text: str) -> None:
         if self.level == "quiet":
             return
-        self._console.print(f"[run {run_id}] {text}", style="dim", markup=False)
+        self._console.print(f"[run {run_id}] {text}", style="dim", markup=False, soft_wrap=True)
 
     def scenario(self, name: str, text: str) -> None:
         if self.level == "quiet":
             return
-        self._console.print(f"[scenario {name}] {text}", style="dim", markup=False)
+        self._console.print(
+            f"[scenario {name}] {text}", style="dim", markup=False, soft_wrap=True
+        )
 
     def status(self, status: str, text: str) -> None:
         color = {"PASS": "green", "FAIL": "red", "LIMIT": "red", "ERROR": "red", "SKIP": "dim"}.get(status, "")
         styled = f"[{color}]{status}[/{color}]" if color else status
-        self._console.print(f"{styled} {escape(text)}")
+        self._console.print(f"{styled} {escape(text)}", soft_wrap=True)
 
     def plain(self, text: str = "") -> None:
         if text:
-            self._console.print(escape(text), markup=False)
+            self._console.print(escape(text), markup=False, soft_wrap=True)
         else:
             self._console.print()
