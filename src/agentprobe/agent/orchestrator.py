@@ -191,6 +191,10 @@ class Orchestrator:
     async def _execute_one(self, call: ToolCall) -> ToolResult:
         t0 = time.monotonic()
         if call.name == "spawn_agent" and self.spawner is not None:
+            # Announce the spawn before running the subagent so its own verbose
+            # activity is framed by the header; the matching footer (result +
+            # duration) is emitted by ui.tool() after execution.
+            self.ui.tool_start(call.name, call.arguments)
             res = await self.spawner.call(call.arguments)
         else:
             res = await self.tools.call_tool(call.name, call.arguments)

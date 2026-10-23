@@ -35,6 +35,27 @@ def test_repl_streams_assistant(capsys):
     assert "Hello world" in out
 
 
+def test_repl_trims_trailing_whitespace_before_tool(capsys):
+    ui = ConsoleUi(_console(), mode="repl")
+    ui.segment_start()
+    ui.chunk("Let me check the docs.")
+    ui.chunk("\n\n")
+    ui.segment_end()
+    ui.tool("read_doc", {"name": "vrp_basic"}, 2.0)
+    out = capsys.readouterr().out
+    # assistant text + single line terminator, then tool line, no blank lines
+    assert "[assistant] Let me check the docs.\n→ read_doc(name=vrp_basic)" in out
+    assert "\n\n\n" not in out
+
+
+def test_repl_preserves_internal_newlines(capsys):
+    ui = ConsoleUi(_console(), mode="repl")
+    ui.segment_start()
+    ui.chunk("line one\nline two\n")
+    ui.segment_end()
+    assert "line one\nline two" in capsys.readouterr().out
+
+
 def test_repl_empty_segment_prints_nothing(capsys):
     ui = ConsoleUi(_console(), mode="repl")
     ui.segment_start()
@@ -141,4 +162,62 @@ def test_subagent_ui_tags_lines_at_verbose(capsys):
 def test_subagent_ui_empty_segment_prints_nothing(capsys):
     ui = SubagentUi(_console(level="verbose"), "s/sub-1")
     ui.segment_start(); ui.segment_end()
+    assert capsys.readouterr().out == ""
+
+
+def test_repl_spawn_agent_header_footer(capsys):
+    ui = ConsoleUi(_console(), mode="repl")
+    ui.tool_start("spawn_agent", {"task": "say hello", "context": "be friendly"})
+    header = capsys.readouterr().out
+    assert "→ spawn_agent(task=say hello, context=be friendly)" in header
+    assert "[ms]" not in header  # no duration in header
+    ui.tool("spawn_agent", {"task": "say hello"}, 2149.0)
+    footer = capsys.readouterr().out
+    assert "→ spawn_agent [2149ms]" in footer
+    assert "task=" not in footer  # args omitted in footer
+
+
+def test_repl_spawn_agent_footer_error(capsys):
+    ui = ConsoleUi(_console(), mode="repl")
+    ui.tool_start("spawn_agent", {"task": "x"})
+    header = capsys.readouterr().out
+    assert "→ spawn_agent(task=x)" in header
+    ui.tool("spawn_agent", {"task": "x"}, 50.0, "subagent aborted: max_turns")
+    footer = capsys.readouterr().out
+    assert "→ spawn_agent [50ms] ERROR: subagent aborted: max_turns" in footer
+
+
+def test_headless_spawn_agent_header_footer(capsys):
+    ui = ConsoleUi(_console(), mode="headless", scenario="firewall-permit-tcp")
+    ui.tool_start("spawn_agent", {"task": "summarize"})
+    header = capsys.readouterr().out
+    assert "[scenario firewall-permit-tcp]" in header
+    assert "→ spawn_agent(task=summarize)" in header
+    assert "[ms]" not in header
+    ui.tool("spawn_agent", {"task": "summarize"}, 5826.0, msg=2)
+    footer = capsys.readouterr().out
+    assert "→ spawn_agent [5826ms]" in footer
+    assert "task=" not in footer
+
+
+def test_repl_regular_tool_keeps_single_line(capsys):
+    ui = ConsoleUi(_console(), mode="repl")
+    ui.tool("read_doc", {"name": "vrp_basic"}, 2.0)
+    out = capsys.readouterr().out
+    assert "read_doc(name=vrp_basic)" in out and "[2ms]" in out
+
+
+def test_tool_start_suppressed_at_quiet(capsys):
+    ui = ConsoleUi(_console(level="quiet"), mode="repl")
+    ui.tool_start("spawn_agent", {"task": "x"})
+    assert capsys.readouterr().out == ""
+
+
+def test_noop_ui_tool_start_is_noop():
+    NoOpUi().tool_start("spawn_agent", {"task": "x"})
+
+
+def test_subagent_ui_tool_start_is_noop(capsys):
+    ui = SubagentUi(_console(level="verbose"), "s/sub-1")
+    ui.tool_start("spawn_agent", {"task": "x"})
     assert capsys.readouterr().out == ""

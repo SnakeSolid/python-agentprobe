@@ -78,6 +78,29 @@ class Console:
         line = self.tool_line(name, args, duration_ms, error)
         self._console.print(f"[yellow]{escape(line)}[/yellow]", soft_wrap=True)
 
+    def tool_footer_line(
+        self,
+        name: str,
+        duration_ms: float | None = None,
+        error: str | None = None,
+    ) -> str:
+        """Result/execution-time line for a tool whose header was printed first
+        (used by ``spawn_agent``); omits the arguments."""
+        suffix = f" [{duration_ms:.0f}ms]" if duration_ms is not None else ""
+        err = f" ERROR: {error}" if error else ""
+        return f"\u2192 {name}{suffix}{err}"
+
+    def tool_footer(
+        self,
+        name: str,
+        duration_ms: float | None = None,
+        error: str | None = None,
+    ) -> None:
+        if self.level == "quiet":
+            return
+        line = self.tool_footer_line(name, duration_ms, error)
+        self._console.print(f"[yellow]{escape(line)}[/yellow]", soft_wrap=True)
+
     def error(self, text: str) -> None:
         self._console.print(f"[red]{escape('[error]')}[/red] {escape(text)}")
 

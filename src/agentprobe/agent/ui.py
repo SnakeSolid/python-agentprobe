@@ -46,6 +46,8 @@ class Ui(Protocol):
         msg: int | None = None,
     ) -> None: ...
 
+    def tool_start(self, name: str, args: dict[str, Any]) -> None: ...
+
     def turn_start(self, ctx: SessionCtx, *, tools_count: int, messages_count: int) -> None: ...
 
     def turn_end(self, ctx: SessionCtx, latency_ms: float, *, partial: bool = False) -> None: ...
@@ -69,6 +71,8 @@ class NoOpUi:
         msg: int | None = None,
     ) -> None: ...
 
+    def tool_start(self, name: str, args: dict[str, Any]) -> None: ...
+
     def turn_start(self, ctx: SessionCtx, *, tools_count: int, messages_count: int) -> None: ...
 
     def turn_end(self, ctx: SessionCtx, latency_ms: float, *, partial: bool = False) -> None: ...
@@ -91,37 +95,61 @@ class ConsoleUi:
         self.mode = mode
         self.scenario = scenario
         self._buf: list[str] = []
-        self._streaming = False
+        self._written = 0
         self._started = False
 
     def segment_start(self) -> None:
         self._buf = []
+        self._written = 0
         self._started = False
-        # In repl mode a segment's `[assistant]` prefix is deferred until the
-        # first content chunk so tool-call-only (empty) segments print nothing.
-        self._streaming = self.mode == "repl"
 
     def chunk(self, text: str) -> None:
+        self._buf.append(text)
+        # In repl mode stream incrementally, but hold back any trailing
+        # whitespace so a segment that ends before a tool call does not emit
+        # blank lines (matches headless `.rstrip()` behaviour).
         if self.mode == "repl":
-            if self._streaming:
-                if not self._started:
-                    self._started = True
-                    self.console.stream_begin()
-                self.console.stream_write(text)
-        else:
-            self._buf.append(text)
+            self._flush_repl()
+
+    def _flush_repl(self) -> None:
+        full = "".join(self._buf)
+        n = len(full)
+        while n > 0 and full[n - 1].isspace():
+            n -= 1
+        if n > self._written:
+            to_write = full[self._written:n]
+            if not self._started:
+                self._started = True
+                self.console.stream_begin()
+            self.console.stream_write(to_write)
+            self._written = n
 
     def segment_end(self) -> None:
         if self.mode == "repl":
+            self._flush_repl()  # flush any remaining non-whitespace content
             if self._started:
                 self.console.stream_end()
-            self._streaming = False
+            self._buf = []
+            self._written = 0
             self._started = False
         else:
             text = "".join(self._buf).rstrip()
             if self.console.level == "verbose" and text:
                 self.console.assistant(text)
             self._buf = []
+
+    def tool_start(self, name: str, args: dict[str, Any]) -> None:
+        """Print a tool header (name + arguments) before it runs.
+
+        Used by ``spawn_agent`` so the subagent's own activity is framed by the
+        spawn call; the matching result line is emitted by :meth:`tool`.
+        """
+        if self.console.level == "quiet":
+            return
+        if self.scenario is not None:
+            self.console.scenario(self.scenario, f"  {self.console.tool_line(name, args)}")
+        else:
+            self.console.tool(name, args)
 
     def tool(
         self,
@@ -132,6 +160,14 @@ class ConsoleUi:
         msg: int | None = None,
     ) -> None:
         if self.console.level == "quiet":
+            return
+        if name == "spawn_agent":
+            # Header already printed by tool_start(); emit result + duration only.
+            line = self.console.tool_footer_line(name, duration_ms, error)
+            if self.scenario is not None:
+                self.console.scenario(self.scenario, f"  {line}")
+            else:
+                self.console.tool_footer(name, duration_ms, error)
             return
         if self.scenario is not None:
             line = self.console.tool_line(name, args, duration_ms, error)
@@ -183,6 +219,10 @@ class SubagentUi(Ui):
         if self.console.level == "verbose" and text:
             self._sub(f"[assistant] {text}")
         self._buf = []
+
+    def tool_start(self, name: str, args: dict[str, Any]) -> None:
+        # Subagents never spawn further subagents; nothing to emit.
+        pass
 
     def tool(
         self,
