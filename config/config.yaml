@@ -16,17 +16,17 @@ app:
 
 models:
   main:
-    endpoint: https://api.example.com/v1
-    api_key: placeholder-key
-    model: qwen3.6-27b
+    endpoint: http://127.0.0.1:4001/api/v2
+    api_key: sk-none
+    model: deepseek-v4-flash-0731
     temperature: 0.6
     request_timeout_secs: 120
     max_retries: 3
     proxy: null
   subagent:
-    endpoint: https://api.example.com/v1
-    api_key: placeholder-key
-    model: qwen3.6-27b
+    endpoint: http://127.0.0.1:4001/api/v2
+    api_key: sk-none
+    model: deepseek-v4-flash-0731
     temperature: 0.4
     request_timeout_secs: 120
     max_retries: 3

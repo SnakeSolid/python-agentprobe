@@ -121,7 +121,7 @@ Environment-variable substitution is applied to every string value
 ## Scenario format
 
 A scenario is a YAML file (see `scenarios/firewall_permit_tcp.yaml` and
-`chapters/appendix/appendix-05-d-scenario-schema.md`) containing:
+`chapters/appendix1/appendix1-05-d-scenario-schema.md`) containing:
 
 - `name`, `description`, `initial_message`
 - `tool_vars` — behavior parameterization for `command_execute`/`execute_shell`

@@ -5,9 +5,14 @@ base = Path(__file__).resolve().parent
 
 for name, prefix, sub in [
     ("TECHSPEC.md", "techspec", "techspec"),
-    ("APPENDIX.md", "appendix", "appendix"),
+    ("APPENDIX1.md", "appendix1", "appendix1"),
+    ("APPENDIX2.md", "appendix2", "appendix2"),
 ]:
-    src_lines = (base.parent / name).read_text(encoding="utf-8").splitlines()
+    src = base.parent / name
+    if not src.exists():
+        print(f"SKIP {name}: source file not present")
+        continue
+    src_lines = src.read_text(encoding="utf-8").splitlines()
     files = sorted((base / sub).glob(f"{prefix}-*.md"))
 
     # Reconstruct from chapter files, removing the prepended H1 line and blank.

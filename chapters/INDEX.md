@@ -1,6 +1,6 @@
 # Chapters Index
 
-This directory contains `TECHSPEC.md` and `APPENDIX.md`, split into chapters (one file per top-level section, plus a short `Introduction` for each document). The original monolithic source files (`../TECHSPEC.md` and `../APPENDIX.md`) were removed after the split — these chapters are the canonical reference.
+This directory contains `TECHSPEC.md`, `APPENDIX1.md`, and `APPENDIX2.md`, split into chapters (one file per top-level section, plus a short `Introduction` for each document). The monolithic source files were removed after the split — these chapters are the canonical reference.
 
 ---
 
@@ -33,36 +33,50 @@ This directory contains `TECHSPEC.md` and `APPENDIX.md`, split into chapters (on
 
 ---
 
-## `APPENDIX.md` — Code Snippets and Examples
+## `APPENDIX1.md` — Code Snippets and Examples
 
 | # | Section | File |
 |---|---------|------|
-| — | Introduction | [`appendix/appendix-01-introduction.md`](appendix/appendix-01-introduction.md) |
-| A | Project skeleton and dependencies | [`appendix/appendix-02-a-project-skeleton-and-dependencies.md`](appendix/appendix-02-a-project-skeleton-and-dependencies.md) |
-| B | Core types | [`appendix/appendix-03-b-core-types.md`](appendix/appendix-03-b-core-types.md) |
-| C | Configuration models | [`appendix/appendix-04-c-configuration-models.md`](appendix/appendix-04-c-configuration-models.md) |
-| D | Scenario schema | [`appendix/appendix-05-d-scenario-schema.md`](appendix/appendix-05-d-scenario-schema.md) |
-| E | Sandbox | [`appendix/appendix-06-e-sandbox.md`](appendix/appendix-06-e-sandbox.md) |
-| F | Tool contract (MCP, idiomatic) | [`appendix/appendix-07-f-tool-contract-mcp-idiomatic.md`](appendix/appendix-07-f-tool-contract-mcp-idiomatic.md) |
-| G | Tool implementations (selected) | [`appendix/appendix-08-g-tool-implementations-selected.md`](appendix/appendix-08-g-tool-implementations-selected.md) |
-| H | `tool_vars` access | [`appendix/appendix-09-h-tool-vars-access.md`](appendix/appendix-09-h-tool-vars-access.md) |
-| I | LLM client | [`appendix/appendix-10-i-llm-client.md`](appendix/appendix-10-i-llm-client.md) |
-| J | Prompt builder | [`appendix/appendix-11-j-prompt-builder.md`](appendix/appendix-11-j-prompt-builder.md) |
-| K | Observer and `ScenarioObserver` | [`appendix/appendix-12-k-observer-and-scenarioobserver.md`](appendix/appendix-12-k-observer-and-scenarioobserver.md) |
-| L | Orchestrator | [`appendix/appendix-13-l-orchestrator.md`](appendix/appendix-13-l-orchestrator.md) |
-| M | YAML logger | [`appendix/appendix-14-m-yaml-logger.md`](appendix/appendix-14-m-yaml-logger.md) |
-| N | Scenario runner (multi-run, isolation, summary) | [`appendix/appendix-15-n-scenario-runner-multi-run-isolation-summary.md`](appendix/appendix-15-n-scenario-runner-multi-run-isolation-summary.md) |
-| O | CLI (`typer`) | [`appendix/appendix-16-o-cli-typer.md`](appendix/appendix-16-o-cli-typer.md) |
-| P | Example unit test (sandbox) | [`appendix/appendix-17-p-example-unit-test-sandbox.md`](appendix/appendix-17-p-example-unit-test-sandbox.md) |
-| Q | Example E2E test with `--replay` | [`appendix/appendix-18-q-example-e2e-test-with-replay.md`](appendix/appendix-18-q-example-e2e-test-with-replay.md) |
-| R | Example skill file | [`appendix/appendix-19-r-example-skill-file.md`](appendix/appendix-19-r-example-skill-file.md) |
-| S | Example complete scenario | [`appendix/appendix-20-s-example-complete-scenario.md`](appendix/appendix-20-s-example-complete-scenario.md) |
-| T | Sample output | [`appendix/appendix-21-t-sample-output.md`](appendix/appendix-21-t-sample-output.md) |
-| U | Implementation checklist | [`appendix/appendix-22-u-implementation-checklist.md`](appendix/appendix-22-u-implementation-checklist.md) |
+| — | Introduction | [`appendix1/appendix1-01-introduction.md`](appendix1/appendix1-01-introduction.md) |
+| A | Project skeleton and dependencies | [`appendix1/appendix1-02-a-project-skeleton-and-dependencies.md`](appendix1/appendix1-02-a-project-skeleton-and-dependencies.md) |
+| B | Core types | [`appendix1/appendix1-03-b-core-types.md`](appendix1/appendix1-03-b-core-types.md) |
+| C | Configuration models | [`appendix1/appendix1-04-c-configuration-models.md`](appendix1/appendix1-04-c-configuration-models.md) |
+| D | Scenario schema | [`appendix1/appendix1-05-d-scenario-schema.md`](appendix1/appendix1-05-d-scenario-schema.md) |
+| E | Sandbox | [`appendix1/appendix1-06-e-sandbox.md`](appendix1/appendix1-06-e-sandbox.md) |
+| F | Tool contract (MCP, idiomatic) | [`appendix1/appendix1-07-f-tool-contract-mcp-idiomatic.md`](appendix1/appendix1-07-f-tool-contract-mcp-idiomatic.md) |
+| G | Tool implementations (selected) | [`appendix1/appendix1-08-g-tool-implementations-selected.md`](appendix1/appendix1-08-g-tool-implementations-selected.md) |
+| H | `tool_vars` access | [`appendix1/appendix1-09-h-tool-vars-access.md`](appendix1/appendix1-09-h-tool-vars-access.md) |
+| I | LLM client | [`appendix1/appendix1-10-i-llm-client.md`](appendix1/appendix1-10-i-llm-client.md) |
+| J | Prompt builder | [`appendix1/appendix1-11-j-prompt-builder.md`](appendix1/appendix1-11-j-prompt-builder.md) |
+| K | Observer and `ScenarioObserver` | [`appendix1/appendix1-12-k-observer-and-scenarioobserver.md`](appendix1/appendix1-12-k-observer-and-scenarioobserver.md) |
+| L | Orchestrator | [`appendix1/appendix1-13-l-orchestrator.md`](appendix1/appendix1-13-l-orchestrator.md) |
+| M | YAML logger | [`appendix1/appendix1-14-m-yaml-logger.md`](appendix1/appendix1-14-m-yaml-logger.md) |
+| N | Scenario runner (multi-run, isolation, summary) | [`appendix1/appendix1-15-n-scenario-runner-multi-run-isolation-summary.md`](appendix1/appendix1-15-n-scenario-runner-multi-run-isolation-summary.md) |
+| O | CLI (`typer`) | [`appendix1/appendix1-16-o-cli-typer.md`](appendix1/appendix1-16-o-cli-typer.md) |
+| P | Example unit test (sandbox) | [`appendix1/appendix1-17-p-example-unit-test-sandbox.md`](appendix1/appendix1-17-p-example-unit-test-sandbox.md) |
+| Q | Example E2E test with `--replay` | [`appendix1/appendix1-18-q-example-e2e-test-with-replay.md`](appendix1/appendix1-18-q-example-e2e-test-with-replay.md) |
+| R | Example skill file | [`appendix1/appendix1-19-r-example-skill-file.md`](appendix1/appendix1-19-r-example-skill-file.md) |
+| S | Example complete scenario | [`appendix1/appendix1-20-s-example-complete-scenario.md`](appendix1/appendix1-20-s-example-complete-scenario.md) |
+| T | Sample output | [`appendix1/appendix1-21-t-sample-output.md`](appendix1/appendix1-21-t-sample-output.md) |
+| U | Implementation checklist | [`appendix1/appendix1-22-u-implementation-checklist.md`](appendix1/appendix1-22-u-implementation-checklist.md) |
+
+---
+
+## `APPENDIX2.md` — Session Output Examples (REPL and Test Modes)
+
+| # | Section | File |
+|---|---------|------|
+| — | Introduction | [`appendix2/appendix2-01-introduction.md`](appendix2/appendix2-01-introduction.md) |
+| 2.0 | Conventions (both modes) | [`appendix2/appendix2-02-2-0-conventions-both-modes.md`](appendix2/appendix2-02-2-0-conventions-both-modes.md) |
+| 2.1 | REPL Mode | [`appendix2/appendix2-03-2-1-repl-mode.md`](appendix2/appendix2-03-2-1-repl-mode.md) |
+| 2.2 | Headless (Test) Mode | [`appendix2/appendix2-04-2-2-headless-test-mode.md`](appendix2/appendix2-04-2-2-headless-test-mode.md) |
+| 2.3 | Exit code summary | [`appendix2/appendix2-05-2-3-exit-code-summary.md`](appendix2/appendix2-05-2-3-exit-code-summary.md) |
+| 2.4 | Mode differences summary | [`appendix2/appendix2-06-2-4-mode-differences-summary.md`](appendix2/appendix2-06-2-4-mode-differences-summary.md) |
+| 2.5 | Snapshot testing notes | [`appendix2/appendix2-07-2-5-snapshot-testing-notes.md`](appendix2/appendix2-07-2-5-snapshot-testing-notes.md) |
 
 ---
 
 ## Helper scripts
 
-- `split.py` — split the original `TECHSPEC.md` and `APPENDIX.md` into these chapters (requires the source files to be re-added to the parent directory to run).
+- `split.py` — splits the original `TECHSPEC.md`, `APPENDIX1.md`, and `APPENDIX2.md` into these chapters (requires the source files to be re-added to the parent directory to run; aware of fenced code blocks so `## ` inside code examples is not treated as a section).
 - `verify.py` — checks that no non-blank content was lost during the split (same requirement).

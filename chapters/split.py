@@ -19,19 +19,30 @@ def split_file(src: Path, out_dir: Path, prefix: str) -> list[tuple[str, str]]:
     current: list[str] = []
     preamble: list[str] = []
     seen_heading = False
+    fence_char: str | None = None  # '`' or '~' if inside a fenced code block
     for line in lines[1:]:
+        # Toggle fenced code blocks (```... or ~~~...). Fences are only openers
+        # when parsing markdown outside a block; we approximate by toggling on
+        # lines that start with at least 3 backticks or tildes.
+        if line.startswith("```") or line.startswith("~~~"):
+            if fence_char is None:
+                fence_char = line[0]
+            else:
+                fence_char = None
+            current.append(line)
+            continue
         m = re.match(r"^## \s*(.+)$", line)
-        if m:
+        if m and fence_char is None:
             seen_heading = True
             if current_title is not None:
                 sections.append((current_title, current))
             current_title = m.group(1).strip()
             current = [line]
-        elif seen_heading:
-            current.append(line)
         else:
-            # content before the first H2 heading -> preamble
-            preamble.append(line)
+            current.append(line)
+            if not seen_heading:
+                # content before the first H2 heading -> preamble
+                preamble.append(line)
     if current_title is not None:
         sections.append((current_title, current))
 
@@ -63,12 +74,18 @@ def split_file(src: Path, out_dir: Path, prefix: str) -> list[tuple[str, str]]:
 
 base = Path(__file__).resolve().parent  # the chapters/ directory
 
-print("=== TECHSPEC ===")
-tech = split_file(base.parent / "TECHSPEC.md", base / "techspec", "techspec")
-for title, path in tech:
-    print(f"{title!r:55} -> {path}")
 
-print("\n=== APPENDIX ===")
-appx = split_file(base.parent / "APPENDIX.md", base / "appendix", "appendix")
-for title, path in appx:
-    print(f"{title!r:55} -> {path}")
+def run(src_name: str, out_dir_name: str, prefix: str) -> None:
+    src = base.parent / src_name
+    if not src.exists():
+        print(f"SKIP {src_name}: source file not present")
+        return
+    print(f"\n=== {src_name} ===")
+    sections = split_file(src, base / out_dir_name, prefix)
+    for title, path in sections:
+        print(f"{title!r:55} -> {path}")
+
+
+run("TECHSPEC.md", "techspec", "techspec")
+run("APPENDIX1.md", "appendix1", "appendix1")
+run("APPENDIX2.md", "appendix2", "appendix2")
