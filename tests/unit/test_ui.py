@@ -1,4 +1,4 @@
-from agentprobe.agent.ui import ConsoleUi, NoOpUi, error_label
+from agentprobe.agent.ui import ConsoleUi, NoOpUi, SubagentUi, error_label
 from agentprobe.llm.types import ToolResult
 from agentprobe.logging.console import Console
 
@@ -109,3 +109,36 @@ def test_verbose_turn_metadata(capsys):
     assert "turn 1" in out and "tools=9" in out and "messages=2" in out
     ui.turn_end(Ctx(), 640.0)
     assert "turn_end 1" in capsys.readouterr().out
+
+
+def test_subagent_ui_silent_below_verbose(capsys):
+    for level in ("info", "quiet"):
+        ui = SubagentUi(_console(level=level), "repl_20261023_191000_aa/sub-1")
+        ui.segment_start(); ui.chunk("hidden"); ui.segment_end()
+        ui.tool("read_doc", {"name": "vrp_basic"}, 2.0)
+        assert capsys.readouterr().out == ""
+
+
+def test_subagent_ui_tags_lines_at_verbose(capsys):
+    ui = SubagentUi(_console(level="verbose"), "repl_20261023_191000_aa/sub-1")
+    # assistant segment (trailing whitespace trimmed)
+    ui.segment_start(); ui.chunk("Let me read the doc.\n\n"); ui.segment_end()
+    out = capsys.readouterr().out
+    assert "[subagent repl_20261023_191000_aa/sub-1]" in out
+    assert "[assistant] Let me read the doc." in out
+    assert "\n\n" not in out
+    # tool line with message number
+    ui.tool("read_doc", {"name": "vrp_basic"}, 2.0, msg=1)
+    out = capsys.readouterr().out
+    assert "read_doc(name=vrp_basic)" in out
+    assert "[2ms]" in out
+    assert "(msg 1)" in out
+    # msg=0 suppressed (consistent with ConsoleUi)
+    ui.tool("read_doc", {"name": "acl"}, 1.0, msg=0)
+    assert "(msg 0)" not in capsys.readouterr().out
+
+
+def test_subagent_ui_empty_segment_prints_nothing(capsys):
+    ui = SubagentUi(_console(level="verbose"), "s/sub-1")
+    ui.segment_start(); ui.segment_end()
+    assert capsys.readouterr().out == ""

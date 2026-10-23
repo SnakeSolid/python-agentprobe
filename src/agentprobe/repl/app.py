@@ -97,6 +97,7 @@ class ReplSession:
                 tools_client=self.tools,
                 logger=self.logger,
                 enabled_tools=self.cfg.tools.enabled,
+                console=self.console,
             )
         self.spawner = spawner
 

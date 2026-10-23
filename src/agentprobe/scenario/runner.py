@@ -260,6 +260,7 @@ class Runner:
                 tools_client=tools_client,
                 logger=logger,
                 enabled_tools=self.cfg.tools.enabled,
+                console=self.console,
             )
 
         ui = ConsoleUi(self.console, mode="headless", scenario=scenario.name)

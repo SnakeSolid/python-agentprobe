@@ -5,11 +5,12 @@ from pathlib import Path
 from typing import Any
 
 from agentprobe.agent.observer import NoOpObserver, SessionCtx
-from agentprobe.agent.ui import NoOpUi
+from agentprobe.agent.ui import NoOpUi, SubagentUi, Ui
 from agentprobe.config import Config
 from agentprobe.errors import LimitExceeded, LLMError, ReplayError, ScenarioAbort
 from agentprobe.llm.client import LLMClient
 from agentprobe.llm.types import Message, ToolResult
+from agentprobe.logging.console import Console
 from agentprobe.logging.yaml_logger import Logger, YamlLogger
 from agentprobe.tools.client import MCPToolClient
 
@@ -40,6 +41,7 @@ class SubagentSpawner:
         tools_client: MCPToolClient,
         logger: Logger,  # parent logger (provides path)
         enabled_tools: list[str],
+        console: Console | None = None,
     ):
         self.cfg = cfg
         self.parent_session_id = parent_session_id
@@ -47,6 +49,7 @@ class SubagentSpawner:
         self.tools = tools_client
         self.logger = logger
         self.enabled_tools = enabled_tools
+        self.console = console
         self._seq = 0
 
     def tool_schema(self) -> dict[str, Any]:
@@ -85,6 +88,11 @@ class SubagentSpawner:
         sub_llm = LLMClient(self.cfg.models.subagent)
         sub_tools = self.tools
         sub_tools_enabled = [t for t in self.enabled_tools if t != "spawn_agent"]
+        # Subagent activity is surfaced on the console only at `verbose`, tagged
+        # with the sub-session id; below that it stays invisible (spec default).
+        sub_ui: Ui = (
+            SubagentUi(self.console, sub_session) if self.console is not None else NoOpUi()
+        )
 
         orchestrator = Orchestrator(
             llm=sub_llm,
@@ -92,7 +100,7 @@ class SubagentSpawner:
             observer=NoOpObserver(),
             logger=sub_logger,
             limits=self.cfg.limits.subagent,
-            ui=NoOpUi(),
+            ui=sub_ui,
             spawner=None,
             is_repl=False,
             enabled_tools=sub_tools_enabled,

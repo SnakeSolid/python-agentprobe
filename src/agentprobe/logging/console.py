@@ -109,6 +109,15 @@ class Console:
             f"[scenario {name}] {text}", style="dim", markup=False, soft_wrap=True
         )
 
+    def subagent(self, session_id: str, text: str) -> None:
+        """Print a subagent activity line tagged with its sub-session id.
+
+        Only rendered at ``verbose``; callers are responsible for the gate.
+        """
+        self._console.print(
+            f"[subagent {session_id}] {text}", style="dim", markup=False, soft_wrap=True
+        )
+
     def status(self, status: str, text: str) -> None:
         color = {"PASS": "green", "FAIL": "red", "LIMIT": "red", "ERROR": "red", "SKIP": "dim"}.get(status, "")
         styled = f"[{color}]{status}[/{color}]" if color else status

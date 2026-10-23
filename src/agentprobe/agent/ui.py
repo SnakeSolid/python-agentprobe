@@ -156,3 +156,63 @@ class ConsoleUi:
             f"turn_end {ctx.turn} | latency={latency_ms:.0f}ms | "
             f"tokens in={ctx.tokens_in} out={ctx.tokens_out}{sfx}"
         )
+
+
+class SubagentUi(Ui):
+    """Surfaces a subagent's own activity on STDOUT at ``verbose`` level.
+
+    Each line is tagged with the sub-session id (e.g. ``repl_.../sub-1``) so it
+    is clearly attributed to the subagent rather than the parent. Below
+    ``verbose`` it stays silent, matching the spec default where subagent
+    internals are hidden and surface only via the parent's summary.
+    """
+
+    def __init__(self, console: Console, session_id: str):
+        self.console = console
+        self.session_id = session_id
+        self._buf: list[str] = []
+
+    def segment_start(self) -> None:
+        self._buf = []
+
+    def chunk(self, text: str) -> None:
+        self._buf.append(text)
+
+    def segment_end(self) -> None:
+        text = "".join(self._buf).rstrip()
+        if self.console.level == "verbose" and text:
+            self._sub(f"[assistant] {text}")
+        self._buf = []
+
+    def tool(
+        self,
+        name: str,
+        args: dict[str, Any],
+        duration_ms: float | None = None,
+        error: str | None = None,
+        msg: int | None = None,
+    ) -> None:
+        if self.console.level != "verbose":
+            return
+        line = self.console.tool_line(name, args, duration_ms, error)
+        self._sub(line + (f"  (msg {msg})" if msg else ""))
+
+    def turn_start(self, ctx: SessionCtx, *, tools_count: int, messages_count: int) -> None:
+        if self.console.level != "verbose":
+            return
+        self._sub(
+            f"turn {ctx.turn} | messages={messages_count} tools={tools_count} "
+            f"| context\u2248{ctx.tokens_in + ctx.tokens_out} tokens"
+        )
+
+    def turn_end(self, ctx: SessionCtx, latency_ms: float, *, partial: bool = False) -> None:
+        if self.console.level != "verbose":
+            return
+        sfx = " (partial)" if partial else ""
+        self._sub(
+            f"turn_end {ctx.turn} | latency={latency_ms:.0f}ms | "
+            f"tokens in={ctx.tokens_in} out={ctx.tokens_out}{sfx}"
+        )
+
+    def _sub(self, text: str) -> None:
+        self.console.subagent(self.session_id, text)
