@@ -31,7 +31,8 @@ class Console:
         parts = []
         for k, v in args.items():
             s = str(v)
-            if len(s) > self.truncate:
+            # `verbose` shows full arguments; otherwise truncate long values.
+            if self.level != "verbose" and len(s) > self.truncate:
                 s = s[: self.truncate] + "\u2026"
             parts.append(f"{k}={s}")
         return ", ".join(parts)
@@ -39,40 +40,57 @@ class Console:
     def user(self, text: str) -> None:
         if self.level == "quiet":
             return
-        self._console.print(f"[cyan][user][/cyan] {escape(text)}")
+        self._console.print(f"[cyan]{escape('[user]')}[/cyan] {escape(text)}")
 
     def assistant(self, text: str) -> None:
-        self._console.print(f"[green][assistant][/green] {escape(text)}")
+        self._console.print(f"[green]{escape('[assistant]')}[/green] {escape(text)}")
 
     def stream_begin(self, prefix: str = "[assistant]") -> None:
         self._console.print(f"[green]{escape(prefix)}[/green] ", end="")
 
     def stream_write(self, text: str) -> None:
-        self._console.print(text, end="")
+        self._console.print(text, end="", markup=False)
         self._console.file.flush()
 
     def stream_end(self) -> None:
         self._console.print()
 
-    def tool(self, name: str, args: dict[str, Any], duration_ms: float | None = None) -> None:
+    def tool_line(
+        self,
+        name: str,
+        args: dict[str, Any],
+        duration_ms: float | None = None,
+        error: str | None = None,
+    ) -> str:
+        suffix = f" [{duration_ms:.0f}ms]" if duration_ms is not None else ""
+        err = f" ERROR: {error}" if error else ""
+        return f"\u2192 {name}({self._fmt_args(args)}){suffix}{err}"
+
+    def tool(
+        self,
+        name: str,
+        args: dict[str, Any],
+        duration_ms: float | None = None,
+        error: str | None = None,
+    ) -> None:
         if self.level == "quiet":
             return
-        suffix = f" [{duration_ms:.0f}ms]" if duration_ms is not None else ""
-        self._console.print(f"[yellow]\u2192 {name}({escape(self._fmt_args(args))}){suffix}[/yellow]")
+        line = self.tool_line(name, args, duration_ms, error)
+        self._console.print(f"[yellow]{escape(line)}[/yellow]")
 
     def error(self, text: str) -> None:
-        self._console.print(f"[red][error][/red] {escape(text)}")
+        self._console.print(f"[red]{escape('[error]')}[/red] {escape(text)}")
 
     def warning(self, text: str) -> None:
-        self._console.print(f"[yellow][warning][/yellow] {escape(text)}")
+        self._console.print(f"[yellow]{escape('[warning]')}[/yellow] {escape(text)}")
 
     def info(self, text: str) -> None:
         if self.level == "quiet":
             return
-        self._console.print(f"[dim][info][/dim] {escape(text)}")
+        self._console.print(f"[dim]{escape('[info]')}[/dim] {escape(text)}")
 
     def interrupt(self, text: str) -> None:
-        self._console.print(f"[red][interrupt][/red] {escape(text)}")
+        self._console.print(f"[red]{escape('[interrupt]')}[/red] {escape(text)}")
 
     def tokens(self, line: str) -> None:
         if self.level == "quiet":

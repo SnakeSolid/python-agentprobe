@@ -5,9 +5,10 @@ import time
 
 from agentprobe.agent.observer import Observer, SessionCtx
 from agentprobe.agent.subagent import SubagentSpawner
+from agentprobe.agent.ui import Ui, error_label
 from agentprobe.config import Limits
 from agentprobe.errors import LimitExceeded, ScenarioAbort
-from agentprobe.llm.client import LLMClient, OnChunk
+from agentprobe.llm.client import LLMClient
 from agentprobe.llm.types import Message, ToolCall, ToolResult
 from agentprobe.logging.yaml_logger import Logger
 from agentprobe.tools.client import MCPToolClient
@@ -30,6 +31,7 @@ class Orchestrator:
         observer: Observer,
         logger: Logger,
         limits: Limits,
+        ui: Ui,
         spawner: SubagentSpawner | None = None,
         is_repl: bool = False,
         enabled_tools: list[str] | None = None,
@@ -39,6 +41,7 @@ class Orchestrator:
         self.observer = observer
         self.logger = logger
         self.limits = limits
+        self.ui = ui
         self.spawner = spawner
         self.is_repl = is_repl
         self.enabled_tools = enabled_tools
@@ -48,7 +51,6 @@ class Orchestrator:
         messages: list[Message],
         user_input: str,
         ctx: SessionCtx,
-        on_chunk: OnChunk | None = None,
     ) -> str | None:
         """Run one full turn. Returns final assistant text, or None if aborted."""
         ctx.turn += 1
@@ -62,7 +64,11 @@ class Orchestrator:
             self.enabled_tools is None or "spawn_agent" in self.enabled_tools
         ):
             tools_schema.append(self.spawner.tool_schema())
+        self.ui.turn_start(
+            ctx, tools_count=len(tools_schema), messages_count=len(messages)
+        )
 
+        completed = False
         try:
             while True:
                 self.logger.log(
@@ -71,12 +77,16 @@ class Orchestrator:
                     messages_count=len(messages),
                     tools_count=len(tools_schema),
                 )
-                response = await self.llm.chat(
-                    [m.to_openai() for m in messages],
-                    tools_schema,
-                    turn=ctx.turn,
-                    on_chunk=on_chunk,
-                )
+                self.ui.segment_start()
+                try:
+                    response = await self.llm.chat(
+                        [m.to_openai() for m in messages],
+                        tools_schema,
+                        turn=ctx.turn,
+                        on_chunk=self.ui.chunk,
+                    )
+                finally:
+                    self.ui.segment_end()
                 self.logger.log(
                     "llm_response",
                     turn=ctx.turn,
@@ -112,6 +122,8 @@ class Orchestrator:
                         usage=response.usage.as_dict() if response.usage else None,
                         tools=dict(ctx.tools_histogram),
                     )
+                    self.ui.turn_end(ctx, (time.monotonic() - turn_start) * 1000)
+                    completed = True
                     return response.content
 
                 # Pre-check all pending calls (may abort before any execution)
@@ -120,7 +132,13 @@ class Orchestrator:
 
                 results = await self._execute_tools(response.tool_calls)
                 # Results are appended in original tool-call order
-                for res in results:
+                for call, res in zip(response.tool_calls, results):
+                    self.ui.tool(
+                        call.name,
+                        call.arguments,
+                        res.duration_ms,
+                        error_label(res),
+                    )
                     await self.observer.on_tool_result(res, ctx)
                     self.logger.log(
                         "tool_result",
@@ -147,6 +165,11 @@ class Orchestrator:
             raise
         except LimitExceeded:  # noqa: TRY203 - propagate to runner/CLI
             raise
+        finally:
+            if not completed:
+                self.ui.turn_end(
+                    ctx, (time.monotonic() - turn_start) * 1000, partial=True
+                )
 
     async def _execute_tools(self, calls: list[ToolCall]) -> list[ToolResult]:
         for c in calls:

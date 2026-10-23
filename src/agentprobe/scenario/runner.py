@@ -16,6 +16,7 @@ import yaml
 from agentprobe.agent.observer import ScenarioObserver, SessionCtx
 from agentprobe.agent.orchestrator import Orchestrator
 from agentprobe.agent.subagent import SubagentSpawner
+from agentprobe.agent.ui import ConsoleUi
 from agentprobe.config import Config
 from agentprobe.errors import ConfigError, LimitExceeded, LLMError, ReplayError, ScenarioAbort
 from agentprobe.llm.client import LLMClient
@@ -261,12 +262,14 @@ class Runner:
                 enabled_tools=self.cfg.tools.enabled,
             )
 
+        ui = ConsoleUi(self.console, mode="headless", scenario=scenario.name)
         orchestrator = Orchestrator(
             llm=llm,
             tools=tools_client,
             observer=observer,
             logger=logger,
             limits=self.cfg.limits.main,
+            ui=ui,
             spawner=spawner,
             is_repl=False,
             enabled_tools=enabled_tools,

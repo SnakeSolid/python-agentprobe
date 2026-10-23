@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from agentprobe.agent.observer import NoOpObserver, SessionCtx
+from agentprobe.agent.ui import NoOpUi
 from agentprobe.config import Config
 from agentprobe.errors import LimitExceeded, LLMError, ReplayError, ScenarioAbort
 from agentprobe.llm.client import LLMClient
@@ -91,6 +92,7 @@ class SubagentSpawner:
             observer=NoOpObserver(),
             logger=sub_logger,
             limits=self.cfg.limits.subagent,
+            ui=NoOpUi(),
             spawner=None,
             is_repl=False,
             enabled_tools=sub_tools_enabled,

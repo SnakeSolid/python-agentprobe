@@ -7,6 +7,7 @@ from agentprobe import __version__
 from agentprobe.agent.observer import NoOpObserver, SessionCtx
 from agentprobe.agent.orchestrator import Orchestrator
 from agentprobe.agent.subagent import SubagentSpawner
+from agentprobe.agent.ui import ConsoleUi
 from agentprobe.config import Config, load_config
 from agentprobe.llm.client import LLMClient
 from agentprobe.llm.types import Message
@@ -14,7 +15,6 @@ from agentprobe.logging.console import Console
 from agentprobe.logging.yaml_logger import YamlLogger, new_session_id
 from agentprobe.prompt.builder import PromptBuilder
 from agentprobe.repl.commands import handle_command
-from agentprobe.repl.ui import StreamPrinter
 from agentprobe.skills.loader import SkillLoader
 from agentprobe.tools.client import MCPToolClient
 
@@ -28,7 +28,7 @@ class ReplSession:
             color=cfg.logging.color,
             truncate=cfg.logging.console_truncate_chars,
         )
-        self.stream = StreamPrinter(self.console)
+        self.ui: ConsoleUi | None = None
         self.tools: MCPToolClient | None = None
         self.skills: SkillLoader | None = None
         self.llm: LLMClient | None = None
@@ -100,12 +100,14 @@ class ReplSession:
             )
         self.spawner = spawner
 
+        self.ui = ConsoleUi(self.console, mode="repl")
         self.orchestrator = Orchestrator(
             llm=self.llm,
             tools=self.tools,
             observer=NoOpObserver(),
             logger=self.logger,
             limits=self.cfg.limits.main,
+            ui=self.ui,
             spawner=spawner,
             is_repl=True,
             enabled_tools=enabled_tools,
@@ -165,14 +167,13 @@ class ReplSession:
         import time
         assert self.orchestrator is not None
 
-        self.console.user(user_input)
+        # The `>>> ` prompt already echoes the user input; no separate [user]
+        # line is needed (spec 2.1.x). Assistant streaming, tool lines and
+        # verbose metadata are rendered by the ConsoleUi inside the loop.
         t0 = time.monotonic()
         partial = False
         try:
-            self.stream.begin_segment()
-            await self.orchestrator.turn(
-                self.messages, user_input, self.ctx, on_chunk=self.stream.on_chunk
-            )
+            await self.orchestrator.turn(self.messages, user_input, self.ctx)
         except asyncio.CancelledError:
             partial = True
         except KeyboardInterrupt:
@@ -182,8 +183,6 @@ class ReplSession:
             partial = True
             self.console.error(f"{type(e).__name__}: {e}")
             self.console.error("turn aborted; history preserved. Continue, retry, or /reset.")
-        finally:
-            self.stream.end_segment()
 
         elapsed = (time.monotonic() - t0) * 1000
         tok_in, tok_out = self.ctx.tokens_in, self.ctx.tokens_out
@@ -245,12 +244,14 @@ class ReplSession:
             self.messages = [Message(role="system", content=system_text)]
         enabled_tools = self.cfg.tools.enabled or None
         self.llm = LLMClient(self.cfg.models.main)
+        self.ui = ConsoleUi(self.console, mode="repl")
         self.orchestrator = Orchestrator(
             llm=self.llm,
             tools=self.tools,
             observer=NoOpObserver(),
             logger=self.logger,
             limits=self.cfg.limits.main,
+            ui=self.ui,
             spawner=self.spawner,
             is_repl=True,
             enabled_tools=enabled_tools,
