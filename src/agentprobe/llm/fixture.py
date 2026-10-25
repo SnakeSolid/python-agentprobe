@@ -28,11 +28,14 @@ class Fixture:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             self._fp = self.path.open("w", encoding="utf-8")
 
-    async def next_response(self, seq: int) -> AssistantMessage:
+    async def next_response(
+        self, seq: int, request_meta: dict[str, Any] | None = None
+    ) -> AssistantMessage:
         if self.mode == "replay":
             if seq > len(self._lines):
                 raise ReplayError(f"fixture exhausted at seq={seq}: {self.path}")
             line = self._lines[seq - 1]
+            self._validate_identity(line, request_meta)
             resp = line["response"]
             return AssistantMessage(
                 content=resp.get("content"),
@@ -43,6 +46,31 @@ class Fixture:
                 usage=Usage(**resp["usage"]) if resp.get("usage") else None,
             )
         raise RuntimeError("record mode does not call next_response")
+
+    def _validate_identity(
+        self, line: dict[str, Any], request_meta: dict[str, Any] | None
+    ) -> None:
+        """Fail fast if the incoming request diverges from the recorded one.
+
+        Only keys recorded at capture time are compared; keys absent from either
+        side are skipped so older fixtures (without ``request_meta``) still
+        replay. A mismatch means the run's config/tools differ from what was
+        recorded and the "deterministic" replay would silently be wrong.
+        """
+        if not request_meta:
+            return
+        recorded = line.get("request_meta") or {}
+        if not recorded:
+            return
+        for key, expected in recorded.items():
+            if key not in request_meta:
+                continue
+            actual = request_meta[key]
+            if actual != expected:
+                raise ReplayError(
+                    f"replay identity mismatch at seq={line.get('seq')}: "
+                    f"{key} recorded={expected!r} actual={actual!r} ({self.path})"
+                )
 
     def record(
         self,

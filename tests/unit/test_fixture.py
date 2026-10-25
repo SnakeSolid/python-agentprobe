@@ -53,3 +53,55 @@ async def test_replay_exhausted_raises(tmp_path):
     await replay.next_response(1)
     with pytest.raises(ReplayError, match="fixture exhausted"):
         await replay.next_response(2)
+
+
+async def test_replay_identity_matches(tmp_path):
+    path = tmp_path / "matching.jsonl"
+    rec = Fixture(path, "record")
+    rec.record(1, 1, AssistantMessage(content="hello"), {"model": "m", "tools_count": 2})
+    rec.close()
+    replay = Fixture(path, "replay")
+    out = await replay.next_response(1, {"model": "m", "tools_count": 2})
+    assert out.content == "hello"
+
+
+async def test_replay_identity_mismatch_tools_count(tmp_path):
+    path = tmp_path / "mismatch.jsonl"
+    rec = Fixture(path, "record")
+    rec.record(1, 1, AssistantMessage(content="hello"), {"model": "m", "tools_count": 2})
+    rec.close()
+    replay = Fixture(path, "replay")
+    with pytest.raises(ReplayError, match="replay identity mismatch.*tools_count recorded=2 actual=3"):
+        await replay.next_response(1, {"model": "m", "tools_count": 3})
+
+
+async def test_replay_identity_mismatch_model(tmp_path):
+    path = tmp_path / "mismatch_model.jsonl"
+    rec = Fixture(path, "record")
+    rec.record(1, 1, AssistantMessage(content="hello"), {"model": "a", "tools_count": 2})
+    rec.close()
+    replay = Fixture(path, "replay")
+    with pytest.raises(ReplayError, match="replay identity mismatch.*model recorded='a' actual='b'"):
+        await replay.next_response(1, {"model": "b", "tools_count": 2})
+
+
+async def test_replay_identity_skipped_when_no_recorded_meta(tmp_path):
+    # Older fixtures without request_meta still replay without validating.
+    path = tmp_path / "legacy.jsonl"
+    path.write_text(
+        '{"seq":1,"response":{"content":"old","tool_calls":[],"usage":null}}\n',
+        encoding="utf-8",
+    )
+    replay = Fixture(path, "replay")
+    out = await replay.next_response(1, {"model": "m", "tools_count": 9})
+    assert out.content == "old"
+
+
+async def test_replay_identity_skipped_when_no_incoming_meta(tmp_path):
+    path = tmp_path / "no_incoming.jsonl"
+    rec = Fixture(path, "record")
+    rec.record(1, 1, AssistantMessage(content="x"), {"model": "m", "tools_count": 2})
+    rec.close()
+    replay = Fixture(path, "replay")
+    out = await replay.next_response(1)
+    assert out.content == "x"

@@ -52,7 +52,7 @@ class LLMClient:
     ) -> AssistantMessage:
         if self.fixture is not None and self.fixture.mode == "replay":
             self._seq += 1
-            return await self.fixture.next_response(self._seq)
+            return await self.fixture.next_response(self._seq, self._request_meta(tools))
 
         last_exc: Exception | None = None
         for attempt in range(self.cfg.max_retries):
@@ -72,13 +72,11 @@ class LLMClient:
 
         if self.fixture is not None and self.fixture.mode == "record":
             self._seq += 1
-            self.fixture.record(
-                self._seq,
-                turn,
-                msg,
-                {"model": self.cfg.model, "tools_count": len(tools)},
-            )
+            self.fixture.record(self._seq, turn, msg, self._request_meta(tools))
         return msg
+
+    def _request_meta(self, tools: list[dict[str, Any]]) -> dict[str, Any]:
+        return {"model": self.cfg.model, "tools_count": len(tools)}
 
     async def _stream(
         self,
