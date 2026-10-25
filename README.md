@@ -144,7 +144,7 @@ src/agentprobe/
                        builtin/*.py (one file per tool)
   skills/loader.py     skill discovery / frontmatter
   prompt/builder.py    system + subagent prompt assembly
-  logging/             yaml_logger.py, console.py, metrics.py
+  logging/             yaml_logger.py, console.py
   scenario/            schema.py, runner.py (multi-run, isolation, summary)
   repl/                app.py, commands.py, ui.py
 config/config.yaml     runtime configuration

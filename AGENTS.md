@@ -47,7 +47,7 @@ tools/               server.py (FastMCP, auto-imports), client.py (MCP transport
                      sandbox.py (path escape guard), vars.py, builtin/*.py (one/tool)
 skills/loader.py     Skill discovery from <name>/SKILL.md frontmatter
 prompt/builder.py    System-prompt assembly (+ MEMORY + AVAILABLE SKILLS)
-logging/             yaml_logger.py, console.py, metrics.py
+logging/             yaml_logger.py, console.py
 scenario/            schema.py (models), runner.py (isolation, parallelism, summary)
 repl/                app.py, commands.py, ui.py
 config/config.yaml   runtime config
