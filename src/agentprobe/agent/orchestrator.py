@@ -210,3 +210,12 @@ class Orchestrator:
         elapsed = time.monotonic() - turn_start
         if elapsed > self.limits.max_duration_secs:
             raise LimitExceeded("max_duration_secs", self.limits.max_duration_secs, int(elapsed))
+        if (
+            self.limits.max_context_tokens
+            and ctx.context_tokens_max > self.limits.max_context_tokens
+        ):
+            raise LimitExceeded(
+                "max_context_tokens",
+                self.limits.max_context_tokens,
+                ctx.context_tokens_max,
+            )
