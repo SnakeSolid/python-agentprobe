@@ -87,9 +87,18 @@ class MCPToolClient:
         opts = self._mcp._mcp_server.create_initialization_options()
 
         async def _run_server() -> None:
-            await self._mcp._mcp_server.run(  # type: ignore[union-attr]
-                server_read, server_write, opts
-            )
+            try:
+                await self._mcp._mcp_server.run(  # type: ignore[union-attr]
+                    server_read, server_write, opts
+                )
+            finally:
+                # If the server task dies (unhandled exception), its memory
+                # streams would otherwise stay open and the client's pending
+                # receive() would block forever — anyio does not auto-close
+                # cloned streams when a task ends. Closing the server's write
+                # endpoint makes the client's receive() raise EndOfStream
+                # instead of hanging.
+                await server_write.aclose()
 
         self._server_task = asyncio.create_task(_run_server())
         try:
@@ -135,14 +144,28 @@ class MCPToolClient:
         return out
 
     async def call_tool(self, name: str, arguments: dict[str, Any]) -> ToolResult:
-        assert self._session is not None
+        session = self._session
+        if session is None:
+            return ToolResult(
+                call_id="",
+                name=name,
+                content="ERROR: no_active_session: tool client is not started",
+                is_error=True,
+            )
         try:
-            result = await self._session.call_tool(name, arguments or {})
+            result = await session.call_tool(name, arguments or {})
+            text = self._extract_text(result)
+        except asyncio.CancelledError:
+            # Never swallow cancellation: it must propagate so the
+            # orchestrator's asyncio.gather / cleanup can unwind cleanly.
+            raise
         except Exception as e:
+            # Any unexpected failure (transport error, a crashed in-memory
+            # server, a malformed content block) becomes a recoverable error
+            # the agent can see, instead of aborting the whole turn.
             return ToolResult(
                 call_id="", name=name, content=f"ERROR: rpc_error: {e}", is_error=True
             )
-        text = self._extract_text(result)
         is_error = bool(getattr(result, "isError", False)) or text.startswith("ERROR:")
         return ToolResult(call_id="", name=name, content=text, is_error=is_error)
 
@@ -150,10 +173,15 @@ class MCPToolClient:
     def _extract_text(result: Any) -> str:
         parts: list[str] = []
         for block in getattr(result, "content", None) or []:
+            text: Any = None
             if hasattr(block, "text"):
-                parts.append(block.text)
+                text = block.text
             elif isinstance(block, dict) and block.get("type") == "text":
-                parts.append(block.get("text", ""))
+                text = block.get("text", "")
+            if text is not None:
+                # Coerce non-string payloads (e.g. a None/image block) so a
+                # malformed block can't raise out of the call.
+                parts.append(text if isinstance(text, str) else str(text))
         return "\n".join(parts)
 
     async def close(self) -> None:

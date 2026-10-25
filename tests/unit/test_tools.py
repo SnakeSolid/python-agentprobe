@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 import yaml
 
@@ -155,3 +157,29 @@ async def test_traversal_rejected_in_write(client):
     res = await client.call_tool("write", {"path": "../evil.txt", "content": "x"})
     assert res.is_error is True
     assert "ERROR" in res.content
+
+
+async def test_call_tool_no_session_returns_error():
+    client = MCPToolClient()
+    res = await client.call_tool("read", {"path": "x"})
+    assert res.is_error is True
+    assert "ERROR" in res.content
+
+
+async def test_call_tool_surfaces_server_exception(client, monkeypatch):
+    async def boom(name: str, arguments: dict) -> object:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(client._session, "call_tool", boom)
+    res = await client.call_tool("read", {"path": "x"})
+    assert res.is_error is True
+    assert "boom" in res.content
+
+
+async def test_call_tool_repropagates_cancellation(client, monkeypatch):
+    async def boom(name: str, arguments: dict) -> object:
+        raise asyncio.CancelledError()
+
+    monkeypatch.setattr(client._session, "call_tool", boom)
+    with pytest.raises(asyncio.CancelledError):
+        await client.call_tool("read", {"path": "x"})
