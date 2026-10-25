@@ -179,3 +179,7 @@ vars, and both MCP transports (in-memory and stdio).
 - Command execution is **mocked** (`command_execute`, `execute_shell`);
   `syntax_check` performs only basic VRP validation.
 - Only **YAML** output is produced (no XML/JSON), per the spec.
+
+## License
+
+Released under the [MIT License](LICENSE). Copyright (c) 2026 Shabanov Anton.
