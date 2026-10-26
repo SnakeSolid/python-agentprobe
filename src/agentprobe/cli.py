@@ -21,6 +21,17 @@ def _fail(msg: str, code: int = 2) -> None:
     raise typer.Exit(code)
 
 
+def _parse_params(params: list[str]) -> dict[str, str]:
+    """Parse ``--param key=value`` entries into a dict."""
+    out: dict[str, str] = {}
+    for item in params:
+        key, sep, value = item.partition("=")
+        if not sep or not key:
+            _fail(f"invalid --param (expected key=value): {item}")
+        out[key] = value
+    return out
+
+
 @app.command()
 def repl(
     config: Path = typer.Option(..., "--config", exists=True),
@@ -48,6 +59,7 @@ def run(
     fail_fast: bool = typer.Option(False, "--fail-fast"),
     workspace_mode: str = typer.Option("copy", "--workspace-mode", case_sensitive=False),
     keep_workspace: bool = typer.Option(False, "--keep-workspace"),
+    param: list[str] = typer.Option([], "--param", help="Scenario template override key=value (repeatable)"),
     record: Path | None = typer.Option(None, "--record"),
     replay: Path | None = typer.Option(None, "--replay"),
     summary: bool = typer.Option(False, "--summary"),
@@ -85,6 +97,7 @@ def run(
         fail_fast=fail_fast,
         workspace_mode=workspace_mode.lower(),
         keep_workspace=keep_workspace,
+        params=_parse_params(param),
         record=str(record) if record else None,
         replay=str(replay) if replay else None,
         summary=summary or summary_file is not None,

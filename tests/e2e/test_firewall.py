@@ -40,6 +40,29 @@ def test_firewall_replay(tmp_path):
     assert "tcp" in result.stdout.lower()
 
 
+def test_interface_status_replay(tmp_path):
+    fixture_dir = ROOT / "tests/fixtures"
+    summary = tmp_path / "summary.yaml"
+    result = _run(
+        [
+            "run",
+            "--config",
+            "config/config.yaml",
+            "--scenario",
+            "scenarios/interface_status_filtered.yaml",
+            "--replay",
+            str(fixture_dir),
+            "--summary",
+            "--summary-file",
+            str(summary),
+        ]
+    )
+    assert result.returncode == 0, result.stderr + result.stdout
+    data = yaml.safe_load(summary.read_text())
+    assert data["scenarios"][0]["checks"]["passed"] is True
+    assert data["scenarios"][0]["status"] == "PASS"
+
+
 def test_dry_run_no_model(tmp_path):
     result = _run(["dry-run", "--config", "config/config.yaml"])
     assert result.returncode == 0, result.stderr

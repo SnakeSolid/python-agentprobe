@@ -21,6 +21,12 @@ class SessionCtx:
     tokens_total: int = 0
     last_assistant_text: str = ""
     final_text_for_checks: str = ""
+    tool_outputs: list[str] = field(default_factory=list)
+
+    @property
+    def tool_output_transcript(self) -> str:
+        """Combined transcript of every tool result's output for content checks."""
+        return "\n".join(self.tool_outputs)
 
 
 class Observer(Protocol):
@@ -64,6 +70,7 @@ class ScenarioObserver:
     async def on_tool_result(self, res: ToolResult, ctx: SessionCtx) -> None:
         ctx.tools_count += 1
         ctx.tools_histogram[res.name] = ctx.tools_histogram.get(res.name, 0) + 1
+        ctx.tool_outputs.append(f"{res.name}:\n{res.content}")
 
     async def on_turn_end(self, ctx: SessionCtx) -> None:
         pass
@@ -80,4 +87,29 @@ class ScenarioObserver:
         for required in self.checks.required_tools:
             if required not in ctx.tools_histogram:
                 failures.append(f"required_tools: {required} not called")
+
+        transcript = ctx.tool_output_transcript
+        for pat in self.checks.tool_output_include:
+            if not re.search(pat, transcript, re.MULTILINE):
+                failures.append(f'tool_output_include: missing "{pat}"')
+        for pat in self.checks.tool_output_exclude:
+            if re.search(pat, transcript, re.MULTILINE):
+                failures.append(f'tool_output_exclude: matched "{pat}"')
+
+        if self.checks.min_tool_calls is not None and ctx.tools_count < self.checks.min_tool_calls:
+            failures.append(
+                f"min_tool_calls: {ctx.tools_count} < {self.checks.min_tool_calls}"
+            )
+        if self.checks.max_tool_calls is not None and ctx.tools_count > self.checks.max_tool_calls:
+            failures.append(
+                f"max_tool_calls: {ctx.tools_count} > {self.checks.max_tool_calls}"
+            )
+        for tool, minimum in self.checks.min_tool_call.items():
+            actual = ctx.tools_histogram.get(tool, 0)
+            if actual < minimum:
+                failures.append(f"min_tool_call[{tool}]: {actual} < {minimum}")
+        for tool, maximum in self.checks.max_tool_call.items():
+            actual = ctx.tools_histogram.get(tool, 0)
+            if actual > maximum:
+                failures.append(f"max_tool_call[{tool}]: {actual} > {maximum}")
         return failures

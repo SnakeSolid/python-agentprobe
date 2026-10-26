@@ -1,0 +1,49 @@
+name: interface-status-filtered
+description: >
+  Verify interface status, asserting on the actual command_execute OUTPUT
+  content (not just the final assistant text) via the tool-output and count
+  filters.
+initial_message: >
+  Check the operational status of the GigabitEthernet interfaces by running the
+  appropriate show command, then report which interface is fully up.
+
+tool_vars:
+  command_execute:
+    responses:
+      "display interface brief": |
+        Interface    Physical    Protocol
+        GE1/0/1      up          up
+        GE1/0/2      up          down
+        GE1/0/3      down        down
+    fail_on: ["reboot", "reset"]
+
+transitions:
+  - message: "Now confirm in one line that GE1/0/1 is the only fully-up interface."
+    include: ["GE1/0/1"]
+    exclude: []
+    once: true
+
+checks:
+  tags: ["tool-output", "interface", "filter"]
+  final_include: ["GE1/0/1", "up"]
+  final_exclude: ["I cannot", "unknown"]
+  required_tools: ["command_execute"]
+  forbidden_tools: []
+  tool_output_include:
+    - 'Interface\s+Physical'
+    - 'GE1/0/1\s+up\s+up'
+  tool_output_exclude:
+    - 'ERROR:'
+    - 'GE1/0/3\s+up'
+  min_tool_calls: 1
+  max_tool_calls: 4
+  min_tool_call:
+    command_execute: 1
+  max_tool_call:
+    command_execute: 2
+  max_agent_messages: 10
+  max_context_tokens: 50000
+  max_duration_secs: 120
+
+timeouts:
+  turn_secs: 60

@@ -457,8 +457,9 @@ class Runner:
                 seen.add(rp)
                 unique.append(rp)
 
+        params = getattr(self.args, "params", None)
         try:
-            scenarios = [load_scenario(p) for p in unique]
+            scenarios = [load_scenario(p, params=params) for p in unique]
         except Exception as e:
             raise ConfigError(str(e)) from e
         if self.args.filter:
